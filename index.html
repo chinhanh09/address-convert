@@ -4,203 +4,314 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Address Search</title>
+    <!-- jQuery UI CSS for autocomplete styling -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
             padding: 20px;
             max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px auto; /* Add some margin to the top/bottom */
+            background-color: #f4f7f6; /* Light background for the page */
+            color: #333;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px; /* More rounded corners for the main container */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Stronger shadow for depth */
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2em;
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px; /* Increased margin for better spacing */
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px; /* Spacing between label and input */
+            font-weight: 600; /* Slightly bolder labels */
+            color: #555;
         }
-        input[type="text"] {
-            width: calc(100% - 22px); /* Account for padding and border */
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        input[type="text"],
+        .select-box { /* Apply styles to both input type text and select-box class */
+            width: 100%;
+            padding: 12px 15px; /* Increased padding for better touch targets */
+            border: 1px solid #cdd4da; /* Lighter border color */
+            border-radius: 8px; /* Rounded corners for inputs */
             font-size: 16px;
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.06); /* Subtle inner shadow */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for focus effects */
+        }
+        input[type="text"]:focus,
+        .select-box:focus {
+            border-color: #007bff; /* Highlight border on focus */
+            outline: none; /* Remove default outline */
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25); /* Glow effect on focus */
         }
         .search-btn {
+            display: block; /* Make button full width */
+            width: 100%;
             background-color: #007bff;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 25px; /* Larger padding for button */
             border: none;
-            border-radius: 4px;
+            border-radius: 8px; /* Rounded corners for button */
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px; /* Larger font for button */
+            font-weight: bold;
+            margin-top: 25px; /* Space above the button */
+            box-shadow: 0 4px 8px rgba(0,123,255,0.2); /* Shadow for button */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease; /* Smooth transitions */
         }
         .search-btn:hover {
             background-color: #0056b3;
+            box-shadow: 0 6px 12px rgba(0,123,255,0.3); /* Enhanced shadow on hover */
+            transform: translateY(-2px); /* Slight lift effect on hover */
+        }
+        .search-btn:active {
+            transform: translateY(0); /* Press down effect on click */
+            box-shadow: 0 2px 4px rgba(0,123,255,0.2);
         }
         #result {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            background-color: #f9f9f9;
+            margin-top: 30px; /* More space above results */
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f0f8ff; /* Light blue background for results */
+            color: #333;
+            line-height: 1.6;
         }
         #result div {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+        }
+        #result strong {
+            color: #0056b3; /* Stronger color for labels in result */
+        }
+        #result .error-message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* jQuery UI Autocomplete Custom Styling */
+        .ui-autocomplete {
+            max-height: 250px; /* Limit height of autocomplete dropdown */
+            overflow-y: auto; /* Enable scrolling */
+            overflow-x: hidden;
+            border: 1px solid #cdd4da;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000; /* Ensure it's above other elements */
+        }
+        .ui-menu-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .ui-menu-item:last-child {
+            border-bottom: none;
+        }
+        .ui-menu-item:hover,
+        .ui-state-active {
+            background-color: #e6f2ff; /* Light blue background on hover/active */
+            color: #0056b3;
+            border-radius: 0; /* Remove rounded corners for individual items */
         }
     </style>
 </head>
 <body>
-    <h1>Tìm kiếm địa chỉ</h1>
+    <div class="container">
+        <h1>Tìm kiếm địa chỉ</h1>
 
-    <div class="form-group">
-        <label for="province">Tỉnh/Thành phố:</label>
-       <input id="province" class="select-box ui-autocomplete-input" autocomplete="off">
-    </div>
-
-    <div class="form-group">
-        <label for="district">Quận/Huyện:</label>
-       <input id="district" class="select-box ui-autocomplete-input" autocomplete="off">
-    </div>
-
-    <div class="form-group">
-        <label for="ward">Phường/Xã:</label>
-         <input id="ward" class="select-box ui-autocomplete-input" autocomplete="off">
-    </div>
-
-    <button class="search-btn">Tìm kiếm</button>
-
-    <div id="result">
+        <div class="form-group">
+            <label for="province">Tỉnh/Thành phố:</label>
+            <input id="province" class="select-box ui-autocomplete-input" autocomplete="off" placeholder="Nhập tên tỉnh/thành phố">
         </div>
 
+        <div class="form-group">
+            <label for="district">Quận/Huyện:</label>
+            <input id="district" class="select-box ui-autocomplete-input" autocomplete="off" placeholder="Nhập tên quận/huyện">
+        </div>
+
+        <div class="form-group">
+            <label for="ward">Phường/Xã:</label>
+            <input id="ward" class="select-box ui-autocomplete-input" autocomplete="off" placeholder="Nhập tên phường/xã">
+        </div>
+
+        <button class="search-btn">Tìm kiếm</button>
+
+        <div id="result">
+            <!-- Kết quả tìm kiếm sẽ hiển thị ở đây -->
+        </div>
+    </div>
+
+    <!-- jQuery and jQuery UI Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
-        (runinit = window.runinit || []).push(function () {
-            var groupedData = {};
-            var wardAlertShown = false; // Biến cờ tránh hiện alert liên tục
-            $.getJSON("https://static.mediacdn.vn/htv/min/data.json?v=2", function (json) {
-                rawData = json;
+        // This array will hold the raw data fetched from the JSON file
+        let rawData = [];
+        // This object will store the grouped data (Province -> District -> Ward)
+        let groupedData = {};
+        // Flag to prevent multiple alert messages for ward input
+        let wardAlertShown = false; 
 
-                // Nhóm dữ liệu theo Province -> District -> Ward
+        // Function to display custom messages instead of alert()
+        function showMessage(message, isError = false) {
+            const resultDiv = $('#result');
+            resultDiv.html(`<span class="${isError ? 'error-message' : ''}">${message}</span>`);
+        }
+
+        // Ensure the script runs after the DOM is fully loaded
+        $(document).ready(function() {
+            // Fetch the JSON data
+            $.getJSON("https://static.mediacdn.vn/htv/min/data.json?v=2", function (json) {
+                rawData = json; // Store the raw data
+
+                // Group the data by Province, then District, then Ward
                 json.forEach(function (item) {
+                    // Use "TP Hồ Chí Minh" as default if OldProvince is null or empty
                     var province = item.OldProvince?.trim() || "TP Hồ Chí Minh";
                     var district = item.OldDistrict.trim();
                     var ward = item.OldCommune.trim();
 
+                    // Initialize nested objects if they don't exist
                     if (!groupedData[province]) groupedData[province] = {};
                     if (!groupedData[province][district]) groupedData[province][district] = [];
+                    
+                    // Add ward to the list if it's not already there
                     if (!groupedData[province][district].includes(ward)) {
                         groupedData[province][district].push(ward);
                     }
                 });
 
+                // Get a list of all provinces for the autocomplete source
                 var provinceList = Object.keys(groupedData);
 
-                // Autocomplete tỉnh
+                // Initialize autocomplete for the province input field
                 $("#province").autocomplete({
-                    source: provinceList,
-                    minLength: 0,
+                    source: provinceList, // Data source for autocomplete
+                    minLength: 0, // Show all options on focus
                     select: function (event, ui) {
                         var selectedProvince = ui.item.value;
+                        // Get districts for the selected province
                         var districtList = Object.keys(groupedData[selectedProvince]);
 
-                        // Autocomplete quận
+                        // Initialize autocomplete for the district input field
                         $("#district").autocomplete({
-                            source: districtList,
-                            minLength: 0,
+                            source: districtList, // Data source for autocomplete
+                            minLength: 0, // Show all options on focus
                             select: function (event, ui) {
                                 var selectedDistrict = ui.item.value;
+                                // Get wards for the selected province and district
                                 var wardList = groupedData[selectedProvince][selectedDistrict] || [];
 
-                                // Autocomplete phường
+                                // Initialize autocomplete for the ward input field
                                 $("#ward").autocomplete({
-                                    source: wardList,
-                                    minLength: 0
+                                    source: wardList, // Data source for autocomplete
+                                    minLength: 0 // Show all options on focus
                                 }).val("").off("focus").on("focus", function () {
+                                    // When ward input is focused, show all available wards
                                     $(this).autocomplete("search", "");
                                 });
 
+                                // Clear the ward input when a new district is selected
                                 $("#ward").val("");
                             }
                         }).val("").off("focus").on("focus", function () {
+                            // When district input is focused, show all available districts
                             $(this).autocomplete("search", "");
                         });
 
+                        // Clear district and ward inputs when a new province is selected
                         $("#district").val("");
                         $("#ward").val("");
                     }
                 }).focus(function () {
+                    // When province input is focused, show all available provinces
                     $(this).autocomplete("search", "");
                 });
 
-                // Xử lý focus vào phường
+                // Handle focus event for the ward input field
                 $("#ward").on("focus", function () {
                     var province = $("#province").val().trim();
                     var district = $("#district").val().trim();
 
+                    // If province is not selected, inform the user
                     if (!province || !groupedData[province]) {
                         if (!wardAlertShown) {
-                            alert("Vui lòng chọn tỉnh/thành phố trước.");
+                            showMessage("Vui lòng chọn tỉnh/thành phố trước.", true);
                             wardAlertShown = true;
                         }
+                        // Blur the input to prevent further interaction until province is selected
                         setTimeout(() => $(this).blur(), 100);
                         return;
                     }
 
+                    // If district is not selected, inform the user
                     if (!district || !groupedData[province][district]) {
                         if (!wardAlertShown) {
-                            alert("Vui lòng chọn quận/huyện trước.");
+                            showMessage("Vui lòng chọn quận/huyện trước.", true);
                             wardAlertShown = true;
                         }
+                        // Blur the input to prevent further interaction until district is selected
                         setTimeout(() => $(this).blur(), 100);
                         return;
                     }
 
+                    // Reset the alert flag once valid province and district are selected
                     wardAlertShown = false;
                     var source = $("#ward").autocomplete("option", "source");
+                    // If there are available wards, show them
                     if (source && source.length > 0) {
                         $(this).autocomplete("search", "");
                     }
                 });
 
-                // Xử lý tìm kiếm
+                // Handle click event for the search button
                 $(".search-btn").click(function () {
                     var province = $("#province").val().trim();
                     var district = $("#district").val().trim();
                     var ward = $("#ward").val().trim();
 
+                    // Validate inputs before searching
                     if (!province || !groupedData[province]) {
-                        alert("Vui lòng chọn tỉnh/thành phố.");
+                        showMessage("Vui lòng chọn tỉnh/thành phố.", true);
                         return;
                     }
 
                     if (!district || !groupedData[province][district]) {
-                        alert("Vui lòng chọn quận/huyện.");
+                        showMessage("Vui lòng chọn quận/huyện.", true);
                         return;
                     }
 
                     if (!ward || groupedData[province][district].indexOf(ward) === -1) {
-                        alert("Vui lòng chọn phường/xã.");
+                        showMessage("Vui lòng chọn phường/xã.", true);
                         return;
                     }
 
+                    // Find the matching data in the rawData array
                     var result = rawData.find(item =>
                         (item.OldProvince?.trim() || "TP Hồ Chí Minh") === province &&
                         item.OldDistrict.trim() === district &&
                         item.OldCommune.trim() === ward
                     );
 
+                    // Display the search result
                     if (result) {
                         $("#result").html(`
-                                <div><strong>Phường/Xã mới:</strong> ${result.NewCommune}</div>
-                                `);
+                            <div><strong>Phường/Xã mới:</strong> ${result.NewCommune}</div>
+                            <div><strong>Địa chỉ:</strong> ${result.UnitAddress}</div>
+                        `);
                     } else {
-                        $("#result").html("<span style='color:red'>Không tìm thấy kết quả phù hợp.</span>");
+                        showMessage("Không tìm thấy kết quả phù hợp.", true);
                     }
                 });
             });
