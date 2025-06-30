@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Search</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px); /* Account for padding and border */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .search-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-btn:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        #result div {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tìm kiếm địa chỉ</h1>
+
+    <div class="form-group">
+        <label for="province">Tỉnh/Thành phố:</label>
+        <input type="text" id="province" placeholder="Nhập tên tỉnh/thành phố">
+    </div>
+
+    <div class="form-group">
+        <label for="district">Quận/Huyện:</label>
+        <input type="text" id="district" placeholder="Nhập tên quận/huyện">
+    </div>
+
+    <div class="form-group">
+        <label for="ward">Phường/Xã:</label>
+        <input type="text" id="ward" placeholder="Nhập tên phường/xã">
+    </div>
+
+    <button class="search-btn">Tìm kiếm</button>
+
+    <div id="result">
+        </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        (runinit = window.runinit || []).push(function () {
+            var groupedData = {};
+            var wardAlertShown = false; // Biến cờ tránh hiện alert liên tục
+            $.getJSON("https://static.mediacdn.vn/htv/min/data.json?v=2", function (json) {
+                rawData = json;
+
+                // Nhóm dữ liệu theo Province -> District -> Ward
+                json.forEach(function (item) {
+                    var province = item.OldProvince?.trim() || "TP Hồ Chí Minh";
+                    var district = item.OldDistrict.trim();
+                    var ward = item.OldCommune.trim();
+
+                    if (!groupedData[province]) groupedData[province] = {};
+                    if (!groupedData[province][district]) groupedData[province][district] = [];
+                    if (!groupedData[province][district].includes(ward)) {
+                        groupedData[province][district].push(ward);
+                    }
+                });
+
+                var provinceList = Object.keys(groupedData);
+
+                // Autocomplete tỉnh
+                $("#province").autocomplete({
+                    source: provinceList,
+                    minLength: 0,
+                    select: function (event, ui) {
+                        var selectedProvince = ui.item.value;
+                        var districtList = Object.keys(groupedData[selectedProvince]);
+
+                        // Autocomplete quận
+                        $("#district").autocomplete({
+                            source: districtList,
+                            minLength: 0,
+                            select: function (event, ui) {
+                                var selectedDistrict = ui.item.value;
+                                var wardList = groupedData[selectedProvince][selectedDistrict] || [];
+
+                                // Autocomplete phường
+                                $("#ward").autocomplete({
+                                    source: wardList,
+                                    minLength: 0
+                                }).val("").off("focus").on("focus", function () {
+                                    $(this).autocomplete("search", "");
+                                });
+
+                                $("#ward").val("");
+                            }
+                        }).val("").off("focus").on("focus", function () {
+                            $(this).autocomplete("search", "");
+                        });
+
+                        $("#district").val("");
+                        $("#ward").val("");
+                    }
+                }).focus(function () {
+                    $(this).autocomplete("search", "");
+                });
+
+                // Xử lý focus vào phường
+                $("#ward").on("focus", function () {
+                    var province = $("#province").val().trim();
+                    var district = $("#district").val().trim();
+
+                    if (!province || !groupedData[province]) {
+                        if (!wardAlertShown) {
+                            alert("Vui lòng chọn tỉnh/thành phố trước.");
+                            wardAlertShown = true;
+                        }
+                        setTimeout(() => $(this).blur(), 100);
+                        return;
+                    }
+
+                    if (!district || !groupedData[province][district]) {
+                        if (!wardAlertShown) {
+                            alert("Vui lòng chọn quận/huyện trước.");
+                            wardAlertShown = true;
+                        }
+                        setTimeout(() => $(this).blur(), 100);
+                        return;
+                    }
+
+                    wardAlertShown = false;
+                    var source = $("#ward").autocomplete("option", "source");
+                    if (source && source.length > 0) {
+                        $(this).autocomplete("search", "");
+                    }
+                });
+
+                // Xử lý tìm kiếm
+                $(".search-btn").click(function () {
+                    var province = $("#province").val().trim();
+                    var district = $("#district").val().trim();
+                    var ward = $("#ward").val().trim();
+
+                    if (!province || !groupedData[province]) {
+                        alert("Vui lòng chọn tỉnh/thành phố.");
+                        return;
+                    }
+
+                    if (!district || !groupedData[province][district]) {
+                        alert("Vui lòng chọn quận/huyện.");
+                        return;
+                    }
+
+                    if (!ward || groupedData[province][district].indexOf(ward) === -1) {
+                        alert("Vui lòng chọn phường/xã.");
+                        return;
+                    }
+
+                    var result = rawData.find(item =>
+                        (item.OldProvince?.trim() || "TP Hồ Chí Minh") === province &&
+                        item.OldDistrict.trim() === district &&
+                        item.OldCommune.trim() === ward
+                    );
+
+                    if (result) {
+                        $("#result").html(`
+                                <div><strong>Phường/Xã mới:</strong> ${result.NewCommune}</div>
+                                <div><strong>Địa chỉ:</strong> ${result.UnitAddress}</div>
+                                `);
+                    } else {
+                        $("#result").html("<span style='color:red'>Không tìm thấy kết quả phù hợp.</span>");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
